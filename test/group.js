@@ -19,10 +19,9 @@ describe('FacebookAPI', async () => {
     facebookGroupAPI = new FacebookGroupAPI(group.gId, bot)
     facebookUserAPI = new FacebookUserAPI(bot)
   })
-  it('get all comments of a single post', async () => {
-    const comments = await facebookGroupAPI.getComments('941270282746165')
-    //console.log(comments || [])
-  })
+  //it('get all comments of a single post', async () => {
+    //await facebookGroupAPI.getComments('941270282746165')
+  //})
   //it('post message to group', async () => {
     //const postId = await facebookGroupAPI.postMessage('Say hello')
     //expect(/\d+/.test(postId)).to.be.true

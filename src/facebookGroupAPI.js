@@ -141,7 +141,7 @@ class FacebookGroupAPI {
       goPrev: false,
     }
     const comments = await this.getCommentsFromURL(url, options)
-    console.log(JSON.stringify(comments))
+    return comments
   }
   async post({ images = [], message }) {
     const URL = `https://mbasic.facebook.com/groups/${this.gId}`
