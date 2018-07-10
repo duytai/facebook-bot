@@ -59,11 +59,20 @@ class FacebookGroupAPI {
         case 'DIV': {
           const wrapper = tag.children()
           const name = wrapper.eq(0).text()
+          const profile = {}
           const link = wrapper 
             .eq(0)
             .children()
             .eq(0)
             .attr('href')
+          const fId = link.includes('profile.php') 
+            ? link.split('id=')[1].split('&')[0]
+            : ''
+          if (fId) profile.fId = fId
+          const vanity = !link.includes('profile.php')
+            ? link.split('?')[0].split('/')[1]
+            : ''
+          if (vanity) profile.vanity = vanity
           const message = wrapper.eq(1).text()
           let replies = []
           if (tag.find('a[href^="/comment/replies"]').length) {
@@ -77,9 +86,9 @@ class FacebookGroupAPI {
           commentConnection.comments.push({
             id,
             name,
-            link,
             message,
             replies,
+            ...profile,
           })
           break
         }
