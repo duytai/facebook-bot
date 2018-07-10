@@ -28,6 +28,7 @@ class FacebookGroupAPI {
         hasPreviousPage: false,
         nextURL: null,
         prevURL: null,
+        curURL: url,
       },
       comments: []
     } 
@@ -120,10 +121,9 @@ class FacebookGroupAPI {
     if (options.goPrev && commentConnection.pageInfo.hasPreviousPage) {
       const prevConnections = await this
         .getCommentsFromURL(commentConnection.pageInfo.prevURL, options)
-      return [commentConnection]
-        .concat(prevConnections)
+      return prevConnections.concat([commentConnection])
     }
-    return commentConnection 
+    return [commentConnection] 
   }
   async getComments(postId) {
     const url = `https://mbasic.facebook.com/${postId}`
