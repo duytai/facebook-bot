@@ -88,17 +88,18 @@ class FacebookGroupAPI {
       curURL: url,
     }
     let { goNext, goPrev } = options
-    const { feedId, replyTo, jumpReply } = options
+    const { feedId, replyTo, jumpReply, type } = options
     const transporter = this.formReader.getTransporter(url)
     const { body } = await transporter.get()
     const $ = cheerio.load(body)
     let commentElems = null
+    $('div[id^="composer-"]').remove()
     if ($('div[id^="ufi_"]').length) {
       commentElems = $('div[id^="ufi_"]')
         .children()
         .eq(0)
         .children()
-        .eq(4)
+        .eq(3)
         .children()
     } else {
       commentElems = $('#root')
@@ -131,6 +132,7 @@ class FacebookGroupAPI {
               feedId,
               replyTo: id,
               jumpReply,
+              type,
             })
             replies = replies.concat(reply)
           }
@@ -140,6 +142,7 @@ class FacebookGroupAPI {
             message,
             ...toProfile(link),
             ...removeNullProps({ replyTo, feedId }),
+            createdAt: new Date(),
           })
           break
         }
@@ -188,8 +191,24 @@ class FacebookGroupAPI {
       goNext,
       goPrev,
     })).concat(replies)
-    // jump
-    if (goNext && pageInfo.hasNextPage) {
+    let shouldGoNext = false
+    let shouldGoPrev = false
+    switch (type) {
+      case 'FULL': {
+        shouldGoNext = goNext && pageInfo.hasNextPage
+        shouldGoPrev = goPrev && pageInfo.hasPreviousPage
+        break
+      }
+      case 'LATEST': {
+        shouldGoNext = pageInfo.hasNextPage
+        shouldGoPrev = false
+        break
+      }
+      default: {
+        throw new Error('Unknown type')
+      }
+    }
+    if (shouldGoNext) {
       const nextComments = await this
         .getCommentsFromURL(pageInfo.nextURL, {
           goNext,
@@ -197,11 +216,12 @@ class FacebookGroupAPI {
           feedId,
           replyTo,
           jumpReply,
+          type,
         })
       return comments
         .concat(nextComments)
     }
-    if (goPrev && pageInfo.hasPreviousPage) {
+    if (shouldGoPrev) {
       const prevComments = await this
         .getCommentsFromURL(pageInfo.prevURL, {
           goNext,
@@ -209,6 +229,7 @@ class FacebookGroupAPI {
           feedId,
           replyTo,
           jumpReply,
+          type,
         })
       return prevComments.concat(comments)
     }
@@ -223,6 +244,7 @@ class FacebookGroupAPI {
       feedId: postId,
       replyTo: null,
       jumpReply: true,
+      type: 'FULL',
     }
     const comments = await this.getCommentsFromURL(url, options)
     // DETECT LAST COMMENT and REPLY of post
@@ -237,7 +259,7 @@ class FacebookGroupAPI {
 
   async getMoreComments(feedId, Comments) {
     const lastComments = await Comments.find({ feedId, isLast: true }).toArray()
-    return Q.all(lastComments.map(async (lastComment) => {
+    const latestComments = await Q.all(lastComments.map(async (lastComment) => {
       const {
         curURL,
         goNext,
@@ -250,6 +272,7 @@ class FacebookGroupAPI {
         feedId,
         replyTo,
         jumpReply: false,
+        type: 'FULL',
       })
       const commentsByGroup = groupBy(pageComments, ({ replyTo }) => replyTo)
       for (const replyTo in commentsByGroup) {
@@ -258,9 +281,14 @@ class FacebookGroupAPI {
         lastComment.isLast = true
       }
       const pageCommentIds = pageComments.map(c => c.id)
+      const savedComments = await Comments.find({ id: { $in: pageCommentIds } }).toArray()
+      const savedCommentIds = savedComments.map(c => c.id)
+      const newComments = pageComments.filter(c => !savedCommentIds.includes(c.id))
       await Comments.remove({ id: { $in: pageCommentIds } })
       await Comments.insertMany(pageComments)
+      return newComments
     }))
+    return Array(0).concat.apply([], latestComments)
   }
 
   async post({ images = [], message }) {
