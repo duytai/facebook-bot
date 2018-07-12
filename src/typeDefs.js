@@ -9,7 +9,6 @@ module.exports = `
     cookie: String!
   }
   input WatchingCommentInput {
-    gId: ID!
     feedId: ID!
     bot: BotInput!
     type: WatchingCommentType!

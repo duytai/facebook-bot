@@ -6,12 +6,12 @@ module.exports = {
     comments: async (_, { input }, { FacebookGroupAPI, Comments }) => {
       const {
         feedId,
-        gId,
         bot,
         type,
+        gId = '',
       } = input
       const feed = await Comments.findOne({ feedId })
-      const facebookGroupAPI = new FacebookGroupAPI(gId, bot)
+      const facebookGroupAPI = new FacebookGroupAPI(gId, bot, Comments)
       if (!feed) {
         const comments = await facebookGroupAPI.getComments(feedId)
         await Comments.insertMany(comments)
@@ -21,7 +21,7 @@ module.exports = {
           return Comments.find({ feedId }).toArray()
         }
         case 'LATEST': {
-          return facebookGroupAPI.getMoreComments(feedId, Comments)
+          return facebookGroupAPI.getMoreComments(feedId)
         }
         default: {
           throw new Error(`Unknown type ${type}`)

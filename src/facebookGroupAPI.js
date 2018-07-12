@@ -1,16 +1,18 @@
 const Q = require('q')
 const { groupBy } = require('underscore')
 const cheerio = require('cheerio')
+const { uniq } = require('underscore')
 const { FormReader } = require('form-reader')
 const FacebookUserAPI = require('./facebookUserAPI')
 const { sleepSync, toProfile, removeNullProps } = require('./utils')
 
 const { USER_AGENT } = JSON.parse(process.env.SETTINGS)
 class FacebookGroupAPI {
-  constructor(gId, bot) {
+  constructor(gId, bot, Comments) {
     this.gId = gId
     this.bot = bot
     this.facebookUserAPI = new FacebookUserAPI(bot)
+    this.Comments = Comments
     this.formReader = new FormReader({
       useCache: false,
       willSendRequest: {
@@ -120,6 +122,7 @@ class FacebookGroupAPI {
       const tag = commentElem.children().eq(0)
       switch (tag.prop('tagName')) {
         case 'DIV': {
+          let replyLink = null
           const wrapper = tag.children()
           const name = wrapper.eq(0).text()
           const link = wrapper
@@ -128,25 +131,27 @@ class FacebookGroupAPI {
             .eq(0)
             .attr('href')
           const message = wrapper.eq(1).text() || ''
-          if (tag.find('a[href^="/comment/replies"]').length && jumpReply) {
+          if (tag.find('a[href^="/comment/replies"]').length) {
             const href = tag.find('a[href^="/comment/replies"]').attr('href')
-            const replyLink = `https://mbasic.facebook.com${href}`
-            const reply = await this.getCommentsFromURL(replyLink, {
-              goNext: false,
-              goPrev: false,
-              feedId,
-              replyTo: id,
-              jumpReply,
-              type,
-            })
-            replies = replies.concat(reply)
+            replyLink = `https://mbasic.facebook.com${href}`
+            if (jumpReply) {
+              const reply = await this.getCommentsFromURL(replyLink, {
+                goNext: false,
+                goPrev: false,
+                feedId,
+                replyTo: id,
+                jumpReply,
+                type,
+              })
+              replies = replies.concat(reply)
+            }
           }
           comments.push({
             id,
             name,
             message,
             ...toProfile(link),
-            ...removeNullProps({ replyTo, feedId }),
+            ...removeNullProps({ replyTo, feedId, replyLink }),
             createdAt: new Date(),
           })
           break
@@ -262,8 +267,49 @@ class FacebookGroupAPI {
     return comments
   }
 
-  async getMoreComments(feedId, Comments) {
-    const lastComments = await Comments.find({ feedId, isLast: true }).toArray()
+  async getNewReplies(feedId) {
+    const replies = await this.Comments.find({
+      feedId,
+      replyTo: { $exists: true },
+    }).toArray()
+    const replyToIds = uniq(replies.map(r => r.replyTo))
+    const mainCommentWithoutReply = await this.Comments.find({
+      feedId,
+      replyTo: { $exists: false },
+      id: { $nin: replyToIds },
+    }).toArray()
+    return Q.all(
+      mainCommentWithoutReply.map(
+        ({ replyLink, id }) => this
+          .getCommentsFromURL(replyLink, {
+            goNext: false,
+            goPrev: false,
+            feedId,
+            replyTo: id,
+            jumpReply: false,
+            type: 'FULL',
+          }),
+      ),
+    ).then((reps) => {
+      reps.forEach((rep) => {
+        if (rep.length) {
+          rep[rep.length - 1].isLast = true
+        }
+      })
+      return Array(0).concat.apply([], reps)
+    })
+  }
+
+  async getMoreComments(feedId) {
+    // 50%
+    if (Date.now() % 2 === 0) {
+      const replies = await this.getNewReplies(feedId)
+      if (replies.length) {
+        this.Comments.insertMany(replies)
+      }
+      return replies
+    }
+    const lastComments = await this.Comments.find({ feedId, isLast: true }).toArray()
     const latestComments = await Q.all(lastComments.map(async (lastComment) => {
       const {
         curURL,
@@ -286,11 +332,11 @@ class FacebookGroupAPI {
         lastComment.isLast = true
       }
       const pageCommentIds = pageComments.map(c => c.id)
-      const savedComments = await Comments.find({ id: { $in: pageCommentIds } }).toArray()
+      const savedComments = await this.Comments.find({ id: { $in: pageCommentIds } }).toArray()
       const savedCommentIds = savedComments.map(c => c.id)
       const newComments = pageComments.filter(c => !savedCommentIds.includes(c.id))
-      await Comments.remove({ id: { $in: pageCommentIds } })
-      await Comments.insertMany(pageComments)
+      await this.Comments.remove({ id: { $in: pageCommentIds } })
+      await this.Comments.insertMany(pageComments)
       return newComments
     }))
     return Array(0).concat.apply([], latestComments)
