@@ -3,25 +3,29 @@ const GraphQLJSON = require('graphql-type-json')
 module.exports = {
   JSON: GraphQLJSON,
   Query: {
-    comments: async (_, { feedId, gId, bot }, { FacebookGroupAPI, Comments }) => {
-      let initialized = []
-      let added = []
-      const changed = []
-      const removed = []
+    comments: async (_, { input }, { FacebookGroupAPI, Comments }) => {
+      const {
+        feedId,
+        gId,
+        bot,
+        type,
+      } = input
       const feed = await Comments.findOne({ feedId })
       const facebookGroupAPI = new FacebookGroupAPI(gId, bot)
       if (!feed) {
-        initialized = await facebookGroupAPI.getComments(feedId)
-        await Comments.insertMany(initialized)
-      } else {
-        initialized = await Comments.find({ feedId }).toArray()
-        added = await facebookGroupAPI.getMoreComments(feedId, Comments)
+        const comments = await facebookGroupAPI.getComments(feedId)
+        await Comments.insertMany(comments)
       }
-      return {
-        initialized,
-        added,
-        changed,
-        removed,
+      switch (type) {
+        case 'FULL': {
+          return Comments.find({ feedId }).toArray()
+        }
+        case 'LATEST': {
+          return facebookGroupAPI.getMoreComments(feedId, Comments)
+        }
+        default: {
+          throw new Error(`Unknown type ${type}`)
+        }
       }
     },
   },

@@ -1,16 +1,20 @@
 module.exports = `
   scalar JSON
+  enum WatchingCommentType {
+    FULL
+    LATEST
+  }
   input BotInput {
     fbId: ID!
     cookie: String!
   }
-  type WatchingData {
-    initialized: [JSON!]!
-    added: [JSON!]!
-    changed: [JSON!]!
-    removed: [JSON!]!
+  input WatchingCommentInput {
+    gId: ID!
+    feedId: ID!
+    bot: BotInput!
+    type: WatchingCommentType!
   }
   type Query {
-    comments(gId: ID!, feedId: ID!, bot: BotInput!): WatchingData! 
+    comments(input: WatchingCommentInput!): [JSON!]! 
   }
 `

@@ -88,7 +88,12 @@ class FacebookGroupAPI {
       curURL: url,
     }
     let { goNext, goPrev } = options
-    const { feedId, replyTo, jumpReply, type } = options
+    const {
+      feedId,
+      replyTo,
+      jumpReply,
+      type,
+    } = options
     const transporter = this.formReader.getTransporter(url)
     const { body } = await transporter.get()
     const $ = cheerio.load(body)
