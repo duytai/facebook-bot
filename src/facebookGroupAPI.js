@@ -1,3 +1,4 @@
+const Q = require('q')
 const { groupBy } = require('underscore')
 const cheerio = require('cheerio')
 const { FormReader } = require('form-reader')
@@ -87,7 +88,7 @@ class FacebookGroupAPI {
       curURL: url,
     }
     let { goNext, goPrev } = options
-    const { feedId, replyTo } = options
+    const { feedId, replyTo, jumpReply } = options
     const transporter = this.formReader.getTransporter(url)
     const { body } = await transporter.get()
     const $ = cheerio.load(body)
@@ -121,7 +122,7 @@ class FacebookGroupAPI {
             .eq(0)
             .attr('href')
           const message = wrapper.eq(1).text() || ''
-          if (tag.find('a[href^="/comment/replies"]').length) {
+          if (tag.find('a[href^="/comment/replies"]').length && jumpReply) {
             const href = tag.find('a[href^="/comment/replies"]').attr('href')
             const replyLink = `https://mbasic.facebook.com${href}`
             const reply = await this.getCommentsFromURL(replyLink, {
@@ -129,6 +130,7 @@ class FacebookGroupAPI {
               goPrev: false,
               feedId,
               replyTo: id,
+              jumpReply,
             })
             replies = replies.concat(reply)
           }
@@ -194,6 +196,7 @@ class FacebookGroupAPI {
           goPrev,
           feedId,
           replyTo,
+          jumpReply,
         })
       return comments
         .concat(nextComments)
@@ -205,6 +208,7 @@ class FacebookGroupAPI {
           goPrev,
           feedId,
           replyTo,
+          jumpReply,
         })
       return prevComments.concat(comments)
     }
@@ -218,6 +222,7 @@ class FacebookGroupAPI {
       goPrev: false,
       feedId: postId,
       replyTo: null,
+      jumpReply: true,
     }
     const comments = await this.getCommentsFromURL(url, options)
     // DETECT LAST COMMENT and REPLY of post
@@ -228,6 +233,31 @@ class FacebookGroupAPI {
       lastComment.isLast = true
     }
     return comments
+  }
+
+  async getMoreComments(feedId, Comments) {
+    const lastComments = await Comments.find({ feedId, isLast: true }).toArray()
+    return Q.all(lastComments.map(async (lastComment) => {
+      const {
+        curURL,
+        goNext,
+        goPrev,
+        replyTo,
+      } = lastComment
+      const pageComments = await this.getCommentsFromURL(curURL, {
+        goNext,
+        goPrev,
+        feedId,
+        replyTo,
+        jumpReply: false,
+      })
+      const pageCommentIds = pageComments.map(c => c.id)
+      const savedComments = await Comments.find({ id: { $in: pageCommentIds } }).toArray()
+      const savedIds = savedComments.map(c => c.id)
+      const newComments = pageComments.filter(c => !savedIds.includes(c.id))
+      console.log(newComments)
+      return newComments
+    })).then(() => [])
   }
 
   async post({ images = [], message }) {

@@ -16,7 +16,7 @@ MongoClient.connect(MONGO_URL, { useNewUrlParser: true }, (error, client) => {
     typeDefs,
     resolvers,
     context: {
-      Feeds: db.collection('feeds'),
+      Comments: db.collection('comments'),
       FacebookUserAPI,
       FacebookGroupAPI,
     },
