@@ -2,7 +2,7 @@ const fs = require('fs')
 const path = require('path')
 const { expect } = require('chai')
 const { MongoClient } = require('mongodb')
-const { FacebookGroupAPI, FacebookUserAPI } = require('../')
+const { FacebookGroupAPI, FacebookUserAPI } = require('../src/')
 const { MONGO_URL, DB } = JSON.parse(process.env.SETTINGS)
 
 describe('FacebookAPI', async () => {

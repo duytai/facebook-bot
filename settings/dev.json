@@ -1,5 +1,6 @@
 {
   "MONGO_URL": "mongodb://127.0.0.1:27017",
+  "PORT": 4000,
   "DB": "bots",
   "USER_AGENT": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36"
 }
