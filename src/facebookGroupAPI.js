@@ -251,13 +251,16 @@ class FacebookGroupAPI {
         replyTo,
         jumpReply: false,
       })
+      const commentsByGroup = groupBy(pageComments, ({ replyTo }) => replyTo)
+      for (const replyTo in commentsByGroup) {
+        const cmts = commentsByGroup[replyTo]
+        const lastComment = cmts[cmts.length - 1]
+        lastComment.isLast = true
+      }
       const pageCommentIds = pageComments.map(c => c.id)
-      const savedComments = await Comments.find({ id: { $in: pageCommentIds } }).toArray()
-      const savedIds = savedComments.map(c => c.id)
-      const newComments = pageComments.filter(c => !savedIds.includes(c.id))
-      console.log(newComments)
-      return newComments
-    })).then(() => [])
+      await Comments.remove({ id: { $in: pageCommentIds } })
+      await Comments.insertMany(pageComments)
+    }))
   }
 
   async post({ images = [], message }) {
