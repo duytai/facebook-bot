@@ -1,8 +1,12 @@
 const cheerio = require('cheerio')
 const Q = require('q')
-const { groupBy, uniq } = require('underscore')
-const { toProfile, removeNullProps } = require('./utils')
+const { uniq } = require('underscore')
 const FacebookAPI = require('./facebookAPI')
+const {
+  toProfile,
+  removeNullProps,
+  addLastFlag,
+} = require('./utils')
 
 class FacebookFeedComment extends FacebookAPI {
   async getCommentsFromURL(url, options = {}) {
@@ -183,14 +187,7 @@ class FacebookFeedComment extends FacebookAPI {
       type: 'FULL',
     }
     const comments = await this.getCommentsFromURL(url, options)
-    // DETECT LAST COMMENT and REPLY of post
-    const commentsByGroup = groupBy(comments, ({ replyTo }) => replyTo)
-    for (const replyTo in commentsByGroup) {
-      const cmts = commentsByGroup[replyTo]
-      const lastComment = cmts[cmts.length - 1]
-      lastComment.isLast = true
-    }
-    return comments
+    return addLastFlag(comments)
   }
 
   async getNewReplies(feedId) {
@@ -243,7 +240,7 @@ class FacebookFeedComment extends FacebookAPI {
         goPrev,
         replyTo,
       } = lastComment
-      const pageComments = await this.getCommentsFromURL(curURL, {
+      let pageComments = await this.getCommentsFromURL(curURL, {
         goNext,
         goPrev,
         feedId,
@@ -251,14 +248,11 @@ class FacebookFeedComment extends FacebookAPI {
         jumpReply: false,
         type: 'FULL',
       })
-      const commentsByGroup = groupBy(pageComments, ({ replyTo }) => replyTo)
-      for (const replyTo in commentsByGroup) {
-        const cmts = commentsByGroup[replyTo]
-        const lastComment = cmts[cmts.length - 1]
-        lastComment.isLast = true
-      }
+      pageComments = addLastFlag(pageComments)
       const pageCommentIds = pageComments.map(c => c.id)
-      const savedComments = await this.Storage.find({ id: { $in: pageCommentIds } }).toArray()
+      const savedComments = await this.Storage.find({
+        id: { $in: pageCommentIds },
+      }).toArray()
       const savedCommentIds = savedComments.map(c => c.id)
       const newComments = pageComments.filter(c => !savedCommentIds.includes(c.id))
       await this.Storage.remove({ id: { $in: pageCommentIds } })

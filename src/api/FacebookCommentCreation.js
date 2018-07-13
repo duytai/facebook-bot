@@ -1,7 +1,7 @@
 const FacebookAPI = require('./facebookAPI')
 
 class FacebookCommentCreation extends FacebookAPI {
-  async post(commentId, message) {
+  async reply(commentId, message) {
     let replyURL = ''
     const comment = await this.Storage.findOne({ id: commentId })
     if (!comment) throw new Error('Comment is not found')

@@ -10,12 +10,12 @@ module.exports = {
         bot,
         gId = '',
       } = input
-      const facebookCommentCreation = FacebookFactory.create('COMMENT_CREATION', {
-        gId,
-        bot,
-        Storage: Comments,
-      })
-      await facebookCommentCreation.post(commentId, message)
+      const factoryParams = { gId, bot, Storage: Comments }
+      const facebookFeedComment = FacebookFactory
+        .create('COMMENT', factoryParams)
+      const facebookCommentCreation = FacebookFactory
+        .create('COMMENT_CREATION', factoryParams)
+      await facebookCommentCreation.reply(commentId, message)
     },
   },
   Query: {

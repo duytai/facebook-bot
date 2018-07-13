@@ -1,6 +1,16 @@
 const Q = require('q')
+const { groupBy } = require('underscore')
 
 module.exports = {
+  addLastFlag(comments) {
+    const commentsByGroup = groupBy(comments, ({ replyTo }) => replyTo)
+    return Object.keys(commentsByGroup).map((replyTo) => {
+      const cmts = commentsByGroup[replyTo]
+      const lastComment = cmts[cmts.length - 1]
+      lastComment.isLast = true
+      return cmts
+    }).reduce((r, n) => r.concat(n), [])
+  },
   removeNullProps(object) {
     const retVal = {}
     for (const key in object) {
