@@ -23,6 +23,6 @@ module.exports = `
     stopWatchingComment(feedId: ID!): Boolean!
   }
   type Query {
-    comments(input: WatchingCommentInput!): [JSON!]! 
+    watchComments(input: WatchingCommentInput!): [JSON!]! 
   }
 `

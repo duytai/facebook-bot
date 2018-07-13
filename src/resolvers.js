@@ -22,7 +22,7 @@ module.exports = {
     },
   },
   Query: {
-    comments: async (_, { input }, { FacebookFactory, Comments }) => {
+    watchComments: async (_, { input }, { FacebookFactory, Comments }) => {
       const {
         feedId,
         bot,
