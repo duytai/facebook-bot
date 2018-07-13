@@ -213,14 +213,9 @@ class FacebookFeedComment extends FacebookAPI {
             type: 'FULL',
           }),
       ),
-    ).then((reps) => {
-      reps.forEach((rep) => {
-        if (rep.length) {
-          rep[rep.length - 1].isLast = true
-        }
-      })
-      return Array(0).concat.apply([], reps)
-    })
+    )
+      .then(reps => reps.reduce((r, n) => r.concat(n), []))
+      .then(reps => addLastFlag(reps))
   }
 
   async getMoreComments(feedId) {

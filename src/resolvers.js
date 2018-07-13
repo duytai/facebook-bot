@@ -11,8 +11,6 @@ module.exports = {
         gId = '',
       } = input
       const factoryParams = { gId, bot, Storage: Comments }
-      const facebookFeedComment = FacebookFactory
-        .create('COMMENT', factoryParams)
       const facebookCommentCreation = FacebookFactory
         .create('COMMENT_CREATION', factoryParams)
       await facebookCommentCreation.reply(commentId, message)
