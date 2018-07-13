@@ -1,11 +1,9 @@
-const FacebookUserAPI = require('./facebookUserAPI')
-const FacebookGroupAPI = require('./facebookGroupAPI')
 const typeDefs = require('./typeDefs')
 const resolvers = require('./resolvers')
+const FacebookFactory = require('./api')
 
 module.exports = {
-  FacebookUserAPI,
-  FacebookGroupAPI,
+  FacebookFactory,
   typeDefs,
   resolvers,
 }

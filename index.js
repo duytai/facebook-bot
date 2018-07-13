@@ -2,8 +2,7 @@ const { MongoClient } = require('mongodb')
 const { ApolloServer } = require('apollo-server-express')
 const express = require('express')
 const {
-  FacebookUserAPI,
-  FacebookGroupAPI,
+  FacebookFactory,
   typeDefs,
   resolvers,
 } = require('./src')
@@ -17,8 +16,7 @@ MongoClient.connect(MONGO_URL, { useNewUrlParser: true }, (error, client) => {
     resolvers,
     context: {
       Comments: db.collection('comments'),
-      FacebookUserAPI,
-      FacebookGroupAPI,
+      FacebookFactory,
     },
   })
   const app = express()

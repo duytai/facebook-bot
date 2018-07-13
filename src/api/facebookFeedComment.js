@@ -1,84 +1,10 @@
-const Q = require('q')
-const { groupBy } = require('underscore')
 const cheerio = require('cheerio')
-const { uniq } = require('underscore')
-const { FormReader } = require('form-reader')
-const FacebookUserAPI = require('./facebookUserAPI')
-const { sleepSync, toProfile, removeNullProps } = require('./utils')
+const Q = require('q')
+const { groupBy, uniq } = require('underscore')
+const { toProfile, removeNullProps } = require('./utils')
+const FacebookAPI = require('./facebookAPI')
 
-const { USER_AGENT } = JSON.parse(process.env.SETTINGS)
-class FacebookGroupAPI {
-  constructor(gId, bot, Comments) {
-    this.gId = gId
-    this.bot = bot
-    this.facebookUserAPI = new FacebookUserAPI(bot)
-    this.Comments = Comments
-    this.formReader = new FormReader({
-      useCache: false,
-      willSendRequest: {
-        headers: {
-          'User-Agent': USER_AGENT,
-          cookie: bot.cookie,
-        },
-      },
-    })
-  }
-
-  async getReactionsFromURL(reactLink) {
-    const reactionConnection = {
-      pageInfo: {
-        hasNextPage: false,
-        hasPreviousPage: false,
-        nextURL: null,
-        prevURL: null,
-        curURL: reactLink,
-      },
-      users: [],
-    }
-    const transporter = this.formReader.getTransporter(reactLink)
-    const { body } = await transporter.get()
-    const $ = cheerio.load(body)
-    const lis = $('li')
-    for (let i = 0; i < lis.length; i++) {
-      const li = lis.eq(i)
-      const numImgTags = li.find('img').length
-      switch (numImgTags) {
-        case 0: {
-          const href = li.find('a').attr('href')
-          const nextURL = `https://mbasic.facebook.com${href}`
-            .replace('limit=10', 'limit=500')
-          reactionConnection.pageInfo.hasNextPage = true
-          reactionConnection.pageInfo.nextURL = nextURL
-          break
-        }
-        case 2: {
-          const img = li.find('img').last()
-          const link = li.find('a').first().attr('href')
-          const reactType = img.attr('alt')
-          const profile = toProfile(link)
-          reactionConnection.users.push({
-            reactType,
-            ...profile,
-          })
-          break
-        }
-        default:
-          throw new Error('Unexpected errors')
-      }
-    }
-    if (reactionConnection.pageInfo.hasNextPage) {
-      return [reactionConnection].concat(
-        await this.getReactionsFromURL(reactionConnection.pageInfo.nextURL),
-      )
-    }
-    return [reactionConnection]
-  }
-
-  async getReactions(postId) {
-    const reactLink = `https://mbasic.facebook.com/ufi/reaction/profile/browser/?ft_ent_identifier=${postId}`
-    const reactions = await this.getReactionsFromURL(reactLink)
-  }
-
+class FacebookFeedComment extends FacebookAPI {
   async getCommentsFromURL(url, options = {}) {
     let comments = []
     let replies = []
@@ -268,12 +194,12 @@ class FacebookGroupAPI {
   }
 
   async getNewReplies(feedId) {
-    const replies = await this.Comments.find({
+    const replies = await this.Storage.find({
       feedId,
       replyTo: { $exists: true },
     }).toArray()
     const replyToIds = uniq(replies.map(r => r.replyTo))
-    const mainCommentWithoutReply = await this.Comments.find({
+    const mainCommentWithoutReply = await this.Storage.find({
       feedId,
       replyTo: { $exists: false },
       id: { $nin: replyToIds },
@@ -305,11 +231,11 @@ class FacebookGroupAPI {
     if (Date.now() % 2 === 0) {
       const replies = await this.getNewReplies(feedId)
       if (replies.length) {
-        this.Comments.insertMany(replies)
+        this.Storage.insertMany(replies)
       }
       return replies
     }
-    const lastComments = await this.Comments.find({ feedId, isLast: true }).toArray()
+    const lastComments = await this.Storage.find({ feedId, isLast: true }).toArray()
     const latestComments = await Q.all(lastComments.map(async (lastComment) => {
       const {
         curURL,
@@ -332,64 +258,15 @@ class FacebookGroupAPI {
         lastComment.isLast = true
       }
       const pageCommentIds = pageComments.map(c => c.id)
-      const savedComments = await this.Comments.find({ id: { $in: pageCommentIds } }).toArray()
+      const savedComments = await this.Storage.find({ id: { $in: pageCommentIds } }).toArray()
       const savedCommentIds = savedComments.map(c => c.id)
       const newComments = pageComments.filter(c => !savedCommentIds.includes(c.id))
-      await this.Comments.remove({ id: { $in: pageCommentIds } })
-      await this.Comments.insertMany(pageComments)
+      await this.Storage.remove({ id: { $in: pageCommentIds } })
+      await this.Storage.insertMany(pageComments)
       return newComments
     }))
     return Array(0).concat.apply([], latestComments)
   }
-
-  async post({ images = [], message }) {
-    const URL = `https://mbasic.facebook.com/groups/${this.gId}`
-    const imageFiles = {}
-    for (let i = 0; i < images.length; i++) {
-      imageFiles[`file${i + 1}`] = images[i]
-    }
-    await this.formReader.pipeline([
-      {
-        formAt: 1,
-        willSubmit: (requiredFields, submitFields) => ({
-          ...requiredFields,
-          view_photo: submitFields.view_photo,
-        }),
-      },
-      {
-        willSubmit: (requiredFields, submitFields) => ({
-          ...requiredFields,
-          ...imageFiles,
-          add_photo_done: submitFields.add_photo_done,
-        }),
-      },
-      {
-        willSubmit: (requiredFields, submitFields) => ({
-          ...requiredFields,
-          xc_message: message,
-          view_post: submitFields.view_post,
-        }),
-      },
-    ]).startWith(URL)
-    await sleepSync(1000)
-    return this.facebookUserAPI.getLatestPostID()
-  }
-
-  async postMessage(message) {
-    const URL = `https://mbasic.facebook.com/groups/${this.gId}`
-    await this.formReader.pipeline([
-      {
-        formAt: 1,
-        willSubmit: (requiredFields, submitFields) => ({
-          ...requiredFields,
-          xc_message: message,
-          view_post: submitFields.view_post,
-        }),
-      },
-    ]).startWith(URL)
-    await sleepSync(1000)
-    return this.facebookUserAPI.getLatestPostID()
-  }
 }
 
-module.exports = FacebookGroupAPI
+module.exports = FacebookFeedComment

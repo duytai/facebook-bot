@@ -13,6 +13,14 @@ module.exports = `
     bot: BotInput!
     type: WatchingCommentType!
   }
+  input CommentInput {
+    commentId: ID!
+    message: String!
+    bot: BotInput!
+  }
+  type Mutation {
+    replyTo(input: CommentInput): JSON 
+  }
   type Query {
     comments(input: WatchingCommentInput!): [JSON!]! 
   }

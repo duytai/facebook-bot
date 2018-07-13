@@ -2,18 +2,27 @@ const GraphQLJSON = require('graphql-type-json')
 
 module.exports = {
   JSON: GraphQLJSON,
+  Mutation: {
+    replyTo: (_, { input }, { Comments }) => {
+      const { commentId, message, bot } = input
+    }
+  },
   Query: {
-    comments: async (_, { input }, { FacebookGroupAPI, Comments }) => {
+    comments: async (_, { input }, { FacebookFactory, Comments }) => {
       const {
         feedId,
         bot,
         type,
         gId = '',
       } = input
+      const facebookFeedComment = FacebookFactory.create('COMMENT', {
+        gId,
+        bot,
+        Storage: Comments,
+      })
       const feed = await Comments.findOne({ feedId })
-      const facebookGroupAPI = new FacebookGroupAPI(gId, bot, Comments)
       if (!feed) {
-        const comments = await facebookGroupAPI.getComments(feedId)
+        const comments = await facebookFeedComment.getComments(feedId)
         await Comments.insertMany(comments)
       }
       switch (type) {
@@ -21,7 +30,7 @@ module.exports = {
           return Comments.find({ feedId }).toArray()
         }
         case 'LATEST': {
-          return facebookGroupAPI.getMoreComments(feedId)
+          return facebookFeedComment.getMoreComments(feedId)
         }
         default: {
           throw new Error(`Unknown type ${type}`)

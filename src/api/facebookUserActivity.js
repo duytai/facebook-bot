@@ -1,21 +1,7 @@
 const cheerio = require('cheerio')
-const { FormReader } = require('form-reader')
+const FacebookBase = require('./facebookBase')
 
-const { USER_AGENT } = JSON.parse(process.env.SETTINGS)
-class FacebookUserAPI {
-  constructor(bot) {
-    this.bot = bot
-    this.formReader = new FormReader({
-      useCache: false,
-      willSendRequest: {
-        headers: {
-          'User-Agent': USER_AGENT,
-          cookie: bot.cookie,
-        },
-      },
-    })
-  }
-
+class FacebookUserActivity extends FacebookBase {
   async getLatestPostID() {
     const URL = `https://mbasic.facebook.com/${this.bot.fId}/allactivity`
     const transporter = this.formReader.getTransporter(URL)
@@ -29,4 +15,4 @@ class FacebookUserAPI {
   }
 }
 
-module.exports = FacebookUserAPI
+module.exports = FacebookUserActivity
