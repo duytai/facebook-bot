@@ -1,6 +1,7 @@
 const FacebookUserActivity = require('./facebookUserActivity')
 const FacebookFeedComment = require('./facebookFeedComment')
 const FacebookFeedCreation = require('./facebookFeedCreation')
+const FacebookCommentCreation = require('./FacebookCommentCreation')
 
 const FacebookFactory = {
   create(type, params) {
@@ -10,6 +11,8 @@ const FacebookFactory = {
         return new FacebookUserActivity(bot)
       case 'COMMENT':
         return new FacebookFeedComment(gId, bot, Storage)
+      case 'COMMENT_CREATION':
+        return new FacebookCommentCreation(gId, bot, Storage)
       case 'REACTION':
         return new FacebookFeedCreation(gId, bot, Storage)
       default:

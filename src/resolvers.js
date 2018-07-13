@@ -3,8 +3,18 @@ const GraphQLJSON = require('graphql-type-json')
 module.exports = {
   JSON: GraphQLJSON,
   Mutation: {
-    replyTo: (_, { input }, { Comments }) => {
-      const { commentId, message, bot } = input
+    replyTo: async (_, { input }, { Comments, FacebookFactory }) => {
+      const {
+        commentId,
+        message,
+        bot,
+        gId = '',
+      } = input
+      const facebookCommentCreation = FacebookFactory.create('COMMENT_CREATION', {
+        gId,
+        bot,
+        Storage: Comments,
+      }
     }
   },
   Query: {
