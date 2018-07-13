@@ -14,8 +14,9 @@ module.exports = {
         gId,
         bot,
         Storage: Comments,
-      }
-    }
+      })
+      await facebookCommentCreation.post(commentId, message)
+    },
   },
   Query: {
     comments: async (_, { input }, { FacebookFactory, Comments }) => {
