@@ -29,11 +29,8 @@ module.exports = {
         type,
         gId = '',
       } = input
-      const facebookFeedComment = FacebookFactory.create('COMMENT', {
-        gId,
-        bot,
-        Storage: Comments,
-      })
+      const factoryParams = { gId, bot, Storage: Comments }
+      const facebookFeedComment = FacebookFactory.create('COMMENT', factoryParams)
       const feed = await Comments.findOne({ feedId })
       if (!feed) {
         const comments = await facebookFeedComment.getComments(feedId)
