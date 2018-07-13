@@ -19,7 +19,8 @@ module.exports = `
     bot: BotInput!
   }
   type Mutation {
-    replyTo(input: CommentInput): JSON 
+    replyTo(input: CommentInput): Boolean! 
+    stopWatchingComment(feedId: ID!): Boolean!
   }
   type Query {
     comments(input: WatchingCommentInput!): [JSON!]! 

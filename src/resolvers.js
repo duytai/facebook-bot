@@ -3,6 +3,10 @@ const GraphQLJSON = require('graphql-type-json')
 module.exports = {
   JSON: GraphQLJSON,
   Mutation: {
+    stopWatchingComment: async (_, { feedId }, { Comments }) => {
+      await Comments.remove({ feedId })
+      return true
+    },
     replyTo: async (_, { input }, { Comments, FacebookFactory }) => {
       const {
         commentId,
@@ -14,6 +18,7 @@ module.exports = {
       const facebookCommentCreation = FacebookFactory
         .create('COMMENT_CREATION', factoryParams)
       await facebookCommentCreation.reply(commentId, message)
+      return true
     },
   },
   Query: {
@@ -39,6 +44,9 @@ module.exports = {
           return Comments.find({ feedId }).toArray()
         }
         case 'LATEST': {
+          if (!feed) {
+            return Comments.find({ feedId }).toArray()
+          }
           return facebookFeedComment.getMoreComments(feedId)
         }
         default: {
