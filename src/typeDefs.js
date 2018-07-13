@@ -5,7 +5,7 @@ module.exports = `
     LATEST
   }
   input BotInput {
-    fbId: ID!
+    fId: ID!
     cookie: String!
   }
   input WatchingCommentInput {
@@ -18,9 +18,16 @@ module.exports = `
     message: String!
     bot: BotInput!
   }
+  input PostToGroupInput {
+    gId: ID!
+    message: String!
+    images: [String!]
+    bot: BotInput!
+  }
   type Mutation {
     replyTo(input: CommentInput): Boolean! 
     stopWatchingComment(feedId: ID!): Boolean!
+    postToGroup(input: PostToGroupInput!): ID
   }
   type Query {
     watchComments(input: WatchingCommentInput!): [JSON!]! 

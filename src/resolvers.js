@@ -3,6 +3,19 @@ const GraphQLJSON = require('graphql-type-json')
 module.exports = {
   JSON: GraphQLJSON,
   Mutation: {
+    postToGroup: async (_, { input }, { FacebookFactory }) => {
+      const {
+        gId,
+        message,
+        images,
+        bot,
+      } = input
+      const factoryParams = { gId, bot, Storage: null }
+      const facebookFeedCreation = FacebookFactory.create('FEED_CREATION', factoryParams)
+      if (!images) {
+        return facebookFeedCreation.postMessage(message)
+      }
+    },
     stopWatchingComment: async (_, { feedId }, { Comments }) => {
       await Comments.remove({ feedId })
       return true

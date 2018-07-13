@@ -13,7 +13,7 @@ const FacebookFactory = {
         return new FacebookFeedComment(gId, bot, Storage)
       case 'COMMENT_CREATION':
         return new FacebookCommentCreation(gId, bot, Storage)
-      case 'REACTION':
+      case 'FEED_CREATION':
         return new FacebookFeedCreation(gId, bot, Storage)
       default:
         throw new Error(`Unknown type ${type}`)
