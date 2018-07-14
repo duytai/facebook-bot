@@ -1,3 +1,4 @@
+const { omit } = require('underscore')
 const { sleepSync } = require('./utils')
 const FacebookAPI = require('./facebookAPI')
 const FacebookUserActivity = require('./facebookUserActivity')
@@ -10,11 +11,7 @@ class FacebookFeedCreation extends FacebookAPI {
 
   async post({ images = [], message }) {
     const URL = `https://mbasic.facebook.com/groups/${this.gId}`
-    const imageFiles = {}
-    for (let i = 0; i < images.length; i++) {
-      imageFiles[`file${i + 1}`] = images[i]
-    }
-    await this.formReader.pipeline([
+    const addFirstPhoto = [
       {
         formAt: 1,
         willSubmit: (requiredFields, submitFields) => ({
@@ -25,10 +22,26 @@ class FacebookFeedCreation extends FacebookAPI {
       {
         willSubmit: (requiredFields, submitFields) => ({
           ...requiredFields,
-          ...imageFiles,
+          file1: images[0],
           add_photo_done: submitFields.add_photo_done,
         }),
       },
+    ]
+    const addOtherPhotos = images.slice(1).map(image => [
+      {
+        willSubmit: requiredFields => ({
+          ...omit(requiredFields, (value, key) => key.includes('remove_photo_overview')),
+        }),
+      },
+      {
+        willSubmit: (requiredFields, submitFields) => ({
+          ...omit(requiredFields, (value, key) => key.includes('remove_photo')),
+          file1: image,
+          add_photo_done: submitFields.add_photo_done,
+        }),
+      },
+    ]).reduce((r, n) => r.concat(n), [])
+    const submitPhotos = [
       {
         willSubmit: (requiredFields, submitFields) => ({
           ...requiredFields,
@@ -36,7 +49,9 @@ class FacebookFeedCreation extends FacebookAPI {
           view_post: submitFields.view_post,
         }),
       },
-    ]).startWith(URL)
+    ]
+    const pipeline = addFirstPhoto.concat(addOtherPhotos).concat(submitPhotos)
+    await this.formReader.pipeline(pipeline).startWith(URL)
     await sleepSync(1000)
     return this.userActivity.getLatestPostID()
   }
