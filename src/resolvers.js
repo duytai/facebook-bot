@@ -6,6 +6,12 @@ const { downloadFile } = require('./api/utils')
 module.exports = {
   JSON: GraphQLJSON,
   Mutation: {
+    deleteFeed: async (_, { input }, { FacebookFactory }) => {
+      const { feedId, bot } = input
+      const factoryParams = { gId: '', bot, Storage: null }
+      const facebookFeedDeletion = FacebookFactory.create('FEED_DELETION', factoryParams)
+      await facebookFeedDeletion.delete(feedId)
+    },
     postToGroup: async (_, { input }, { FacebookFactory }) => {
       const {
         gId,

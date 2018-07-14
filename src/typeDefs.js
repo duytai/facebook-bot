@@ -24,10 +24,15 @@ module.exports = `
     images: [String!]
     bot: BotInput!
   }
+  input DeleteFeedInput {
+    feedId: ID!
+    bot: BotInput!
+  }
   type Mutation {
     replyTo(input: CommentInput): Boolean! 
     stopWatchingComment(feedId: ID!): Boolean!
     postToGroup(input: PostToGroupInput!): ID
+    deleteFeed(input: DeleteFeedInput!): Boolean!
   }
   type Query {
     watchComments(input: WatchingCommentInput!): [JSON!]! 

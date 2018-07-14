@@ -1,7 +1,8 @@
 const FacebookUserActivity = require('./facebookUserActivity')
 const FacebookFeedComment = require('./facebookFeedComment')
 const FacebookFeedCreation = require('./facebookFeedCreation')
-const FacebookCommentCreation = require('./FacebookCommentCreation')
+const FacebookCommentCreation = require('./facebookCommentCreation')
+const FacebookFeedDeletion = require('./facebookFeedDeletion')
 
 const FacebookFactory = {
   create(type, params) {
@@ -15,6 +16,8 @@ const FacebookFactory = {
         return new FacebookCommentCreation(gId, bot, Storage)
       case 'FEED_CREATION':
         return new FacebookFeedCreation(gId, bot, Storage)
+      case 'FEED_DELETION':
+        return new FacebookFeedDeletion(bot)
       default:
         throw new Error(`Unknown type ${type}`)
     }
