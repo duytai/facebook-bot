@@ -31,6 +31,9 @@ module.exports = `
   input JoinedGroupsInput {
     bot: BotInput!
   }
+  input ValidBotInput {
+    bot: BotInput!
+  }
   type Mutation {
     replyTo(input: CommentInput): Boolean! 
     stopWatchingComment(feedId: ID!): Boolean!
@@ -40,5 +43,6 @@ module.exports = `
   type Query {
     watchComments(input: WatchingCommentInput!): [JSON!]! 
     joinedGroups(input: JoinedGroupsInput!): [JSON!]!
+    validBot(input: ValidBotInput!): Boolean!
   }
 `

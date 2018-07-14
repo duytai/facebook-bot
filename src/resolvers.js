@@ -53,6 +53,11 @@ module.exports = {
     },
   },
   Query: {
+    validBot: async (_, { input }, { FacebookFactory }) => {
+      const { bot } = input
+      const facebookUserValid = FacebookFactory.create('USER_VALID', { bot })
+      return facebookUserValid.isValidCookie()
+    },
     joinedGroups: async (_, { input }, { FacebookFactory }) => {
       const { bot } = input
       const facebookUserGroup = FacebookFactory.create('USER_GROUP', { bot })
