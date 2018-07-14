@@ -6,6 +6,12 @@ const { downloadFile } = require('./api/utils')
 module.exports = {
   JSON: GraphQLJSON,
   Mutation: {
+    reloginBot: async (_, { input }, { FacebookFactory }) => {
+      const { username, password } = input
+      const bot = { fId: '', cookie: '' }
+      const facebookUserValid = FacebookFactory.create('USER_VALID', { bot })
+      return facebookUserValid.relogin(username, password)
+    },
     deleteFeed: async (_, { input }, { FacebookFactory }) => {
       const { feedId, bot } = input
       const factoryParams = { gId: '', bot, Storage: null }

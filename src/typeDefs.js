@@ -34,11 +34,20 @@ module.exports = `
   input ValidBotInput {
     bot: BotInput!
   }
+  input LoginBotInput {
+    username: ID!
+    password: ID!
+  }
+  type Bot {
+    fId: ID!
+    cookie: String!
+  }
   type Mutation {
     replyTo(input: CommentInput): Boolean! 
     stopWatchingComment(feedId: ID!): Boolean!
     postToGroup(input: PostToGroupInput!): ID
     deleteFeed(input: DeleteFeedInput!): Boolean!
+    reloginBot(input: LoginBotInput): Bot!
   }
   type Query {
     watchComments(input: WatchingCommentInput!): [JSON!]! 
