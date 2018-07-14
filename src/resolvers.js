@@ -1,4 +1,7 @@
+const Q = require('q')
+const fs = require('fs')
 const GraphQLJSON = require('graphql-type-json')
+const { downloadFile } = require('./api/utils')
 
 module.exports = {
   JSON: GraphQLJSON,
@@ -15,6 +18,15 @@ module.exports = {
       if (!images) {
         return facebookFeedCreation.postMessage(message)
       }
+      return Q.all(images.map(downloadFile)).then((files) => {
+        return facebookFeedCreation.post({
+          images: files.map(file => fs.createReadStream(file)),
+          message,
+        }).then((feedId) => {
+          files.map(file => fs.unlinkSync(file))
+          return feedId
+        })
+      })
     },
     stopWatchingComment: async (_, { feedId }, { Comments }) => {
       await Comments.remove({ feedId })
