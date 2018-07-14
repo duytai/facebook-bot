@@ -53,6 +53,11 @@ module.exports = {
     },
   },
   Query: {
+    joinedGroups: async (_, { input }, { FacebookFactory }) => {
+      const { bot } = input
+      const facebookUserGroup = FacebookFactory.create('USER_GROUP', { bot })
+      return facebookUserGroup.joinedGroups()
+    },
     watchComments: async (_, { input }, { FacebookFactory, Comments }) => {
       const {
         feedId,
